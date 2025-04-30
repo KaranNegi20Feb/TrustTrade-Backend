@@ -1,0 +1,4 @@
+PORT=9000
+MONGO_URI=mongodb+srv://xxxxMONGO_CLUSTER_USERNAMExxxxx:xxxxxMONGO_CLUSTER_PASSWORDxxxxxcluster-trusttrade.jgowkfd.mongodb.net/
+MONGO_CLUSTER_PASSWORD=xxxxx
+MONGO_CLUSTER_USERNAME=xxx
