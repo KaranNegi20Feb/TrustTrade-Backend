@@ -8,7 +8,6 @@ const User = require('../models/user');
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    // Get all users except the current user
     const users = await User.find({ _id: { $ne: req.user.id } })
       .select('username userType walletAddress');
     
@@ -26,29 +25,24 @@ router.post('/contacts/add/:userId', auth, async (req, res) => {
   try {
     const currentUserId = req.user.id;
     const userToAddId = req.params.userId;
-    
-    // Check if the user to add exists
+
     const userToAdd = await User.findById(userToAddId);
     if (!userToAdd) {
       return res.status(404).json({ msg: 'User not found' });
     }
-    
-    // Get current user
+
     const currentUser = await User.findById(currentUserId);
-    
-    // Check if user is already in contacts
+
     if (currentUser.businessAssociates.includes(userToAddId)) {
       return res.status(400).json({ msg: 'User already in contacts' });
     }
-    
-    // Add user to business associates
+
     currentUser.businessAssociates.push(userToAddId);
     await currentUser.save();
-    
-    // Return the updated business associates list with user details
+
     const updatedUser = await User.findById(currentUserId)
       .populate('businessAssociates', 'username email userType walletAddress isOnline');
-    
+
     res.json({
       msg: 'User added to contacts',
       contacts: updatedUser.businessAssociates
@@ -66,25 +60,20 @@ router.delete('/contacts/remove/:userId', auth, async (req, res) => {
   try {
     const currentUserId = req.user.id;
     const userToRemoveId = req.params.userId;
-    
-    // Get current user
+
     const currentUser = await User.findById(currentUserId);
-    
-    // Check if user is in contacts
+
     if (!currentUser.businessAssociates.includes(userToRemoveId)) {
       return res.status(400).json({ msg: 'User not in contacts' });
     }
-    
-    // Remove user from business associates
+
     currentUser.businessAssociates = currentUser.businessAssociates
       .filter(userId => userId.toString() !== userToRemoveId);
-      
     await currentUser.save();
-    
-    // Return the updated business associates list with user details
+
     const updatedUser = await User.findById(currentUserId)
       .populate('businessAssociates', 'username email userType walletAddress isOnline');
-    
+
     res.json({
       msg: 'User removed from contacts',
       contacts: updatedUser.businessAssociates
@@ -95,32 +84,39 @@ router.delete('/contacts/remove/:userId', auth, async (req, res) => {
   }
 });
 
-// @route   GET /api/users/profile
-// @desc    Get user profile by userType and walletAddress
-// @access  Public
+// @route   POST /api/users/profile
+// @desc    Update user profile
+// @access  Private
 router.post('/profile', auth, async (req, res) => {
   try {
-    const { userType, walletAddress } = req.body;
+    const { userType, walletAddress, businessNumber, businessName } = req.body;
     const userId = req.user.id;
-    
-    // Create an update object with only valid fields
+
     const updateFields = {};
-    if (userType && userType !== '') {
-      updateFields.userType = userType;
+    if (userType && userType !== '') updateFields.userType = userType;
+    if (walletAddress && walletAddress !== '') updateFields.walletAddress = walletAddress;
+
+    // Check if businessNumber or businessName already exists
+    if (businessNumber) {
+      const existingBusinessNumber = await User.findOne({ businessNumber });
+      if (existingBusinessNumber && existingBusinessNumber._id.toString() !== userId) {
+        return res.status(400).json({ msg: 'Business number already exists' });
+      }
+      updateFields.businessNumber = businessNumber;
     }
-    if (walletAddress && walletAddress !== '') {
-      updateFields.walletAddress = walletAddress;
+
+    if (businessName) {
+      const existingBusinessName = await User.findOne({ businessName });
+      if (existingBusinessName && existingBusinessName._id.toString() !== userId) {
+        return res.status(400).json({ msg: 'Business name already exists' });
+      }
+      updateFields.businessName = businessName;
     }
-    
-    // Update the user if there are fields to update
-    if (Object.keys(updateFields).length > 0) {
-      await User.findByIdAndUpdate(userId, updateFields);
-    }
-    
-    // Get the updated user data
+
+    // Update the user
+    await User.findByIdAndUpdate(userId, updateFields, { new: true });
+
     const updatedUser = await User.findById(userId);
-    
-    // Return only userType and walletAddress
     res.json({
       userType: updatedUser.userType || '',
       walletAddress: updatedUser.walletAddress || ''
