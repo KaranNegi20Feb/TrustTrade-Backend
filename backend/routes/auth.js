@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // Register
 router.post('/register', async (req, res) => {
-  const { username, email, password, walletAddress } = req.body;
+  const { username, email, password, walletAddress, userType } = req.body;
 
   try {
     const existing = await User.findOne({ email });
@@ -21,13 +21,14 @@ router.post('/register', async (req, res) => {
       username,
       email,
       password: hashedPass,
+      userType,
       walletAddress
     });
 
     await newUser.save();
 
     const token = jwt.sign({ id: newUser._id }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: newUser._id, email, username } });
+    res.json({ token, user: { id: newUser._id, email, username, userType, walletAddress } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -44,7 +45,7 @@ router.post('/login', async (req, res) => {
     if (!match) return res.status(400).json({ msg: 'Invalid credentials' });
 
     const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: user._id, email: user.email, username: user.username } });
+    res.json({ token, user: { id: user._id, email: user.email, username: user.username, userType: user.userType, walletAddress: user.walletAddress } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
