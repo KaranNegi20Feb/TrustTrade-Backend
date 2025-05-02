@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
   walletAddress: { type: String, unique: true, sparse: true },
   businessName: String,
   businessNumber: String,
+  userType: { type: String, enum: ['buyer', 'seller', 'arbitrator'] },
   businessAssociates: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 });
 
